@@ -36,7 +36,7 @@ exports.createCourseSchedule = async (req, res) => {
   let tomorrow = new Date();
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
 
-  let currDate = moment(new Date());
+  let currDate = moment(new Date()).utcOffset(0, true);
   currDate.date(currDate.date() + 1);
   let i = 0;
   while (i < items.length) {
