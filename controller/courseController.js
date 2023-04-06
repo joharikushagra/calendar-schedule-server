@@ -1,5 +1,7 @@
 const { course } = require("../data");
 const moment = require("moment");
+const { UserCourseModel } = require("../model/courseModel");
+const { getResult } = require("../utils/responseUtil");
 
 const distribute = (hours) => {
   const minsPerDay = hours * 60;
@@ -25,9 +27,11 @@ const distribute = (hours) => {
 
 const isWeekend = (dayOfWeek) => dayOfWeek === 6 || dayOfWeek === 0;
 
-exports.courseController = async (req, res) => {
-  let time = 2;
-  const items = distribute(time);
+exports.createCourseSchedule = async (req, res) => {
+  const { userId, committedTime } = req.body;
+
+  const items = distribute(committedTime);
+
   let schedule = {};
   let tomorrow = new Date();
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
@@ -41,12 +45,47 @@ exports.courseController = async (req, res) => {
       currDate = moment(currDate);
       continue;
     }
-    currDate.date(currDate.date() + 1);
     currDate = moment(currDate);
     const key = currDate.toISOString().split("T")[0];
     schedule[key] = items[i];
+    currDate.date(currDate.date() + 1);
     i++;
   }
 
-  return res.status(200).json({ data: schedule });
+  try {
+    let course_present = await UserCourseModel.findOne({ userId: userId });
+    if (course_present) {
+      course_present["committedTime"] = committedTime;
+      course_present["tasks"] = schedule;
+      await course_present.save();
+    } else {
+      const course = new UserCourseModel(course_details);
+      await course.save();
+    }
+    return res
+      .status(200)
+      .json(await getResult(200, "Schedule Created!", course));
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json(await getResult(500, "Internal Server Error", ""));
+  }
+};
+
+exports.getCourseSchedule = async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) {
+    return res.status(404).json(await getResult(404, "Not Found", ""));
+  }
+  try {
+    const courseSchedule = await UserCourseModel.findOne({ userId: userId });
+    return res
+      .status(200)
+      .json(await getResult(200, "Course fetched!", courseSchedule));
+  } catch (error) {
+    return res
+      .status(500)
+      .json(await getResult(500, "Internal Server Error", ""));
+  }
 };
