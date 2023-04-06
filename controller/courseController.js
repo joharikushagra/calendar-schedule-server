@@ -46,6 +46,8 @@ exports.createCourseSchedule = async (req, res) => {
       continue;
     }
     const key = currDate.format("YYYY-MM-DD");
+    // Debug
+    console.log({ key });
     schedule[key] = items[i];
     currDate.date(currDate.date() + 1);
     i++;
